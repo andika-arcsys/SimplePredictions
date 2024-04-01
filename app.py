@@ -1,5 +1,5 @@
 
-
+#2024.04.01.23
 #2024.04.01.18
 
 import streamlit as st
@@ -205,6 +205,20 @@ if option =="Prophet":
                     df_filtered = df[df[object_filter].isin(object_selection)]
                     df = df_filtered
                     filterVariable = "   >> Filter: " + str(object_selection)
+
+
+        optionCol3, optionCol4 = st.columns(2)
+
+        if object_cols:
+            object_filter = optionCol3.selectbox("Optional - Choose to filter a (non numerical) variable", object_cols, key="optioncol3")
+            if object_filter !=[]:
+                object_filter_selection = df[object_filter].unique()
+                object_selection = optionCol4.multiselect("Choose the value(s) to keep", object_filter_selection, key="optioncol3b")
+                if object_selection !=[]:
+                    df_filtered = df[df[object_filter].isin(object_selection)]
+                    df = df_filtered
+                    filterVariable2 = "   >> Filter: " + str(object_selection)
+
 
 
         st.divider()
@@ -579,8 +593,12 @@ if option =="Statsmodels":
 
     #forecastVariable = st.selectbox('Value to forecast?', numerical_cols)
 
+    st.divider()
+
     # Choose a Filtervariable if useful #######
     optionCola, optionColb = st.columns(2)
+
+
 
     if 1==1:
         if object_cols:
@@ -594,7 +612,25 @@ if option =="Statsmodels":
                     filterVariable = "   >> Filter: " + str(object_selection)
 
 
+    optionColC, optionColD= st.columns(2)
 
+    if 1==1:
+        if object_cols:
+            object_filter = optionColC.selectbox("Optional - Choose to filter a (non numerical) variable", object_cols, key="optionColC")
+            if object_filter != []:
+                object_filter_selection = df[object_filter].unique()
+                object_selection = optionColD.multiselect("Choose the value(s) to keep", object_filter_selection, key="optionColD")
+                if object_selection != []:
+                    df_filtered = df[df[object_filter].isin(object_selection)]
+                    df = df_filtered
+                    filterVariable2 = "   >> Filter: " + str(object_selection)
+
+
+
+    st.divider()
+
+
+    st.subheader("")
 
     if st.button("Start statsmodes forecast"):
 
@@ -616,9 +652,14 @@ if option =="Statsmodels":
         forecast_df["Month Year"] = pd.date_range(
                 start=df[date_col].max() + pd.DateOffset(months=1), periods=n, freq='M')
 
+        st.subheader("")
+
         st.subheader("Measured and forecasted Values by statsmodels:")
 
         StatsModelsForecast_df = df.append(forecast_df)
+
+
+        st.subheader("")
 
         st.write(StatsModelsForecast_df)
 
