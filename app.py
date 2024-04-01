@@ -6,9 +6,11 @@ import streamlit as st
 import pandas as pd
 
 #forecasting
-#import prophet as ph
+
 
 from prophet import Prophet
+
+import prophet as ph
 
 from statsmodels.tsa.api import SimpleExpSmoothing
 
