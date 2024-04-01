@@ -189,6 +189,7 @@ if option =="Prophet":
         st.write("")
 
         filterVariable = ""
+        filterVariable2 = ""
 
         st.write("")
         st.divider()
@@ -217,7 +218,7 @@ if option =="Prophet":
                 if object_selection !=[]:
                     df_filtered = df[df[object_filter].isin(object_selection)]
                     df = df_filtered
-                    filterVariable2 = "   >> Filter: " + str(object_selection)
+                    filterVariable2 = " >> " + str(object_selection)
 
 
 
@@ -380,7 +381,7 @@ if option =="Prophet":
 
             # Plot the forecast
             st.subheader("Plot of the forecast:")
-            st.info("Target: " + target_col + filterVariable)
+            st.info("Target: " + target_col + filterVariable + filterVariable2)
 
             fig = model.plot(Prohetforecast_df)
             st.pyplot(fig)
@@ -434,7 +435,7 @@ if option =="Prophet":
             st.subheader("")
 
             st.subheader("Chart with historical and forecasted data (yhat)")
-            st.info("Target: " + target_col + filterVariable)
+            st.info("Target: " + target_col + filterVariable + filterVariable2)
 
             lineShapeAuswahl = 'linear'
             #lineShapeAuswahl = 'spline'
@@ -609,7 +610,7 @@ if option =="Statsmodels":
                 if object_selection != []:
                     df_filtered = df[df[object_filter].isin(object_selection)]
                     df = df_filtered
-                    filterVariable = "   >> Filter: " + str(object_selection)
+                    filterVariable3 = "   >> Filter: " + str(object_selection)
 
 
     optionColC, optionColD= st.columns(2)
@@ -623,7 +624,7 @@ if option =="Statsmodels":
                 if object_selection != []:
                     df_filtered = df[df[object_filter].isin(object_selection)]
                     df = df_filtered
-                    filterVariable2 = "   >> Filter: " + str(object_selection)
+                    filterVariable4 = " >> " + str(object_selection)
 
 
 
