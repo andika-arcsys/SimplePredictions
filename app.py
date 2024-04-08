@@ -1,4 +1,5 @@
-
+#2024.04.08 + trendcharts
+#2024.04.02.10 widelayot + tab stats historical data
 #2024.04.01.23
 #2024.04.01.18
 
@@ -30,11 +31,17 @@ from pyxlsb import open_workbook as open_xlsb
 from streamlit_option_menu import option_menu
 
 
+
+#forecast mit linear regression
+#from sklearn.linear_model import LinearRegression
+import numpy as np
+
+
 st.set_page_config(
     page_title="Simple Preditictions",
     page_icon="🧊",
-    #layout="wide",
-    #initial_sidebar_state="expanded",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 
@@ -43,8 +50,8 @@ st.set_page_config(
 
 option = option_menu(
 	menu_title="Simple Predictions",
-	options=["Prophet", "Statsmodels"],
-	icons=["0-square", "2-circle"], #https://icons.getbootstrap.com/
+	options=["Prophet", "Statsmodels","Trendchart"],
+	icons=["0-square", "2-circle", "3-circle"], #https://icons.getbootstrap.com/
 	orientation="horizontal",
 )
 
@@ -516,7 +523,7 @@ if option =="Prophet":
 
 
 
-            comparisonCol1, comparisonCol2, comparisonCol3  = st.columns(3)
+            comparisonCol1, comparisonCol2, comparisonCol3, comparisonCol4  = st.columns(4)
             with comparisonCol1:
                 st.info("Stats of historical data and ALL modeled data")
                 testcolumns = ['ds','yhat','Target']
@@ -543,6 +550,21 @@ if option =="Prophet":
                 foreCast_selectedDataYhat = df_prophetForecast[["yhat"]].tail(periods)
                 #st.write(foreCast_selectedData)
                 st.write(foreCast_selectedDataYhat.describe())
+
+
+            with comparisonCol4:
+                st.info("Stats of historical data")
+
+                testcolumns_original = ['ds','Target_original']
+                df_test_historical_original = merged_df[testcolumns_original]
+
+                #df_test_historical_original = df_test_historical_original[df_test_historical_original['Target_original'].notnull()]
+                  # Reset index if needed
+                df_test_historical_original.reset_index(drop=True, inplace=True)
+
+                #st.write(df_test_historical)
+                st.write(df_test_historical_original.describe())              
+
 
 
 if option =="Statsmodels":
@@ -592,7 +614,9 @@ if option =="Statsmodels":
         st.stop()
 
 
-    #forecastVariable = st.selectbox('Value to forecast?', numerical_cols)
+
+
+
 
     st.divider()
 
@@ -660,6 +684,17 @@ if option =="Statsmodels":
         StatsModelsForecast_df = df.append(forecast_df)
 
 
+
+        StatsModelsForecast_df[date_col] = StatsModelsForecast_df[date_col].dt.strftime('%Y-%m')
+        StatsModelsForecast_df['Month Year'] = StatsModelsForecast_df['Month Year'].dt.strftime('%Y-%m')
+
+
+        # Fill missing values in 'date_col' with values from 'Month Year', and vice versa
+        StatsModelsForecast_df['Time'] = StatsModelsForecast_df[date_col].fillna(StatsModelsForecast_df['Month Year'])
+        StatsModelsForecast_df['Time'] = StatsModelsForecast_df['Time'].fillna(StatsModelsForecast_df[date_col])
+
+        #StatsModelsForecast_df['Time'] = StatsModelsForecast_df[date_col] + StatsModelsForecast_df["Month Year"]
+
         st.subheader("")
 
         st.write(StatsModelsForecast_df)
@@ -682,3 +717,294 @@ if option =="Statsmodels":
             st.download_button(label='📥 Save table with statsmodels values to Excel?',
                                data=df_xlsx,
                                file_name=' Statsmodels values - Historic and forecasted' + '.xlsx')
+            
+
+        st.write("")    
+        showforecastVariable = st.selectbox('Show selected forecasted value', numerical_cols)
+
+
+
+
+        if len(StatsModelsForecast_df) > 0:
+            figPlotlyLineChart_statsmodelsForcast = px.line(StatsModelsForecast_df, x='Time',
+                                                                           y=[showforecastVariable],
+                                                                            #y=['yhat', 'Target', 'trend'],
+                                                                           #line_shape=lineShapeAuswahl,
+                                                                           # color_discrete_map={'GESAMTReichweite' : FARBE_GESAMT,'TVReichweite' : FARBE_TV,'ZATTOOReichweite' : FARBE_ZATTOO,'KINOReichweite' : FARBE_KINO,'DOOHReichweite' : FARBE_DOOH,'OOHReichweite' : FARBE_OOH,'FACEBOOKReichweite' : FARBE_FACEBOOK,'YOUTUBEReichweite' : FARBE_YOUTUBE,'ONLINEVIDEOReichweite' : FARBE_ONLINEVIDEO,'ONLINEReichweite' : FARBE_ONLINE, 'RADIOReichweite' : FARBE_RADIO},
+                                                                           markers=True,
+                                                                           # Animation:
+                                                                           # range_x=[0, gesamtBudget*1000],
+                                                                           #range_y=[0, Ymax],
+                                                                           # animation_frame="ds)
+                                                                           )
+
+            # Change grid color and axis colors
+            figPlotlyLineChart_statsmodelsForcast.update_xaxes(showline=True, linewidth=0.1,
+                                                                              linecolor='Black', gridcolor='Black')
+            figPlotlyLineChart_statsmodelsForcast.update_yaxes(showline=True, linewidth=0.1,
+                                                                              linecolor='Black', gridcolor='Black')
+
+            st.plotly_chart(figPlotlyLineChart_statsmodelsForcast, use_container_width=True)
+
+
+
+
+
+
+if option =="Trendchart":
+    st.title("Scatter Trend Chart")
+
+    trendChartInfo = st.expander("Infos")
+    with trendChartInfo:
+        st.markdown(""" The chart can show the following trend lines:
+
+
+
+OLS (Ordinary Least Squares): OLS is a method for estimating the unknown parameters in a linear regression model.
+In the context of a scatter plot, the OLS trend line represents the "best-fit" straight line through the data points.
+This line minimizes the sum of the squared vertical distances (residuals) between each data point and the line.
+OLS assumes a linear relationship between the variables and may not capture non-linear trends well.
+LOWESS (Locally Weighted Scatterplot Smoothing):
+
+LOWESS is a non-parametric method used to fit a smooth curve through a scatter plot.
+Unlike OLS, LOWESS does not assume a specific functional form for the relationship between the variables.
+Instead, it fits a series of local polynomial regressions to subsets of the data.
+The resulting trend line is smoother and can capture non-linear relationships in the data better than OLS.
+The level of smoothing can be adjusted using a bandwidth parameter.
+Expanding Mean:
+
+Expanding Mean is a simple method of calculating a trend line by taking the mean of all the data points up to a certain point.
+As the name suggests, it involves continuously expanding the window of data points used to calculate the mean.
+This trend line provides a simple representation of the overall trend in the data over time.
+However, it may not capture short-term fluctuations or changes in the trend direction effectively.
+                    
+Each of these trend lines offers a different approach to summarizing the relationship between variables in a scatter plot. The choice of which one to use may depend on the characteristics of your data and the specific insights you're trying to extract from the visualization.
+
+OLS, LOWESS, and Expanding Mean) are commonly used for fitting trends to scatter plots, especially in statistical analysis and data visualization. 
+
+Further trendlines - not (yet) implemented here:
+
+However, there are other types of trendlines that could be considered depending on the specific requirements of your application and the characteristics of your data. Here are a few additional options:
+
+ Rolling Mean (rolling):The rolling mean is a method of smoothing a time series data by calculating the mean of consecutive subsets of data points over a specified window (rolling window).
+This method helps to reduce the effects of short-term fluctuations or noise in the data, revealing underlying trends or patterns.
+The rolling window size determines the number of data points included in each calculation of the mean, and it can be adjusted based on the frequency and characteristics of the data.
+Rolling mean is useful for identifying longer-term trends while preserving the overall shape of the data.
+                    
+Exponentially Weighted Moving Average (ewm): The exponentially weighted moving average (EWMA) is another method of smoothing a time series data, similar to the rolling mean but with an exponential weighting scheme.
+In EWMA, recent data points are given more weight compared to older data points, with the weights decreasing exponentially as you move further back in time.
+This weighting scheme allows EWMA to react more quickly to changes in the data compared to simple rolling mean, making it suitable for capturing short-term trends or detecting abrupt changes.
+Like the rolling mean, the smoothing parameter (often referred to as the smoothing factor or span) in EWMA determines the rate at which older observations decay in influence.
+In summary, "rolling" and "ewm" are both methods of smoothing time series data to reveal underlying trends or patterns, with "rolling" using a fixed-size window for averaging and "ewm" giving more weight to recent observations. They are useful tools for data preprocessing and visualization in time series analysis.                   
+
+
+Exponential Trendline:Fits an exponential curve to the data points.
+Useful for data that exhibits exponential growth or decay.
+
+Power Trendline:Fits a power law curve (y = a * x^b) to the data points.
+Useful for data where the relationship between the variables follows a power law.
+
+Logarithmic Trendline:Fits a logarithmic curve (y = a * ln(x) + b) to the data points.
+Useful for data that shows diminishing returns or exponential decay.
+
+Polynomial Trendline:Fits a polynomial curve (e.g., quadratic, cubic) to the data points.
+Useful for capturing non-linear relationships with higher order terms.
+
+Moving Average Trendline: Computes the moving average of the data points over a specified window.
+Useful for smoothing out short-term fluctuations and identifying longer-term trends.                    
+                          
+                    
+                    """)
+
+
+    #n = st.slider('Number of Periods/month to forcast', min_value=1, max_value=24, value=12, step=1)
+
+    # Filter numerical columns
+    numerical_cols = df.select_dtypes(include=[float, int]).columns.tolist()
+
+    object_cols = df.select_dtypes(include='object').columns.tolist()
+
+
+
+
+
+    date_col = st.selectbox("Select a column that contains the date-variable or similar", df.columns, key="statsmodelsagain")
+    # Convert the date column to datetime format
+
+    try:
+        df[date_col] = pd.to_datetime(df[date_col])
+        df = df.sort_values(by=[date_col], ascending=False)
+    except:
+        st.warning("Select a datetime variable")
+        st.stop()
+
+    if len(df)>5:
+        st.write("")
+
+        st.write("")
+        st.write(""" ### Select a target variable""")
+        # Create selectbox with numerical columns
+        if numerical_cols:
+            target_col = st.selectbox("Select the column that contains the target value", numerical_cols)
+            target_Name = str(target_col) #Keep a column with original naming
+            #st.write(target_Name)
+        else:
+            st.write("No numerical columns available in the DataFrame.")
+
+
+
+    st.divider()
+
+    # Choose a Filtervariable if useful #######
+    optionCola, optionColb = st.columns(2)
+
+
+
+    if 1==1:
+        if object_cols:
+            object_filter = optionCola.selectbox("Optional - Choose to filter a (non numerical) variable", object_cols)
+            if object_filter != []:
+                object_filter_selection = df[object_filter].unique()
+                object_selection = optionColb.multiselect("Choose the value(s) to keep", object_filter_selection)
+                if object_selection != []:
+                    df_filtered = df[df[object_filter].isin(object_selection)]
+                    df = df_filtered
+                    filterVariable3 = "   >> Filter: " + str(object_selection)
+
+
+    optionColC, optionColD= st.columns(2)
+
+    if 1==1:
+        if object_cols:
+            object_filter = optionColC.selectbox("Optional - Choose to filter a (non numerical) variable", object_cols, key="optionColC")
+            if object_filter != []:
+                object_filter_selection = df[object_filter].unique()
+                object_selection = optionColD.multiselect("Choose the value(s) to keep", object_filter_selection, key="optionColD")
+                if object_selection != []:
+                    df_filtered = df[df[object_filter].isin(object_selection)]
+                    df = df_filtered
+                    filterVariable4 = " >> " + str(object_selection)
+
+
+
+    st.divider()
+
+
+    st.subheader("")
+
+    if st.checkbox("Show Trend Chart"):
+
+        df = df.sort_values(by=[date_col], ascending=True)
+
+        #st.write("df:", df)
+
+        if 1==1:
+            st.subheader("Trend for " + target_Name)
+
+            trendline_options = ["ols", "lowess", "expanding"]
+            trendline_names = {
+                "ols": "Ordinary Least Squares (OLS)",
+                "lowess": "Locally Weighted Scatterplot Smoothing (LOWESS)",
+                "expanding": "Expanding Mean",
+                #"rolling": "Rolling Mean",
+                #"ewm": "Exponentially Weighted Moving Average"
+                }
+
+            trendlineChoice = st.selectbox("Choose Trendline", trendline_options)
+
+            st.markdown(trendline_names.get(trendlineChoice, "Unknown Trendline"))
+
+            YRangeCol1, YRangeCol2, YRangeCol3 = st.columns([0.1, 0.1, 0.8])
+
+            yMinRange = df[target_col].min()*0.5
+            yMaxRange = df[target_col].max() * 1.5
+
+            with YRangeCol1:
+                yMinInput = st.number_input("YMin", placeholder="Ymin", value=yMinRange)
+            with YRangeCol2:
+                yMaxInput = st.number_input("YMax", placeholder="Ymax", value=yMaxRange)
+
+            with YRangeCol3:
+                st.write("")
+
+            figPlotlyScatterchartwithTrendline = px.scatter(df,
+                                                         x=date_col,
+                                                         y=target_col,
+                                                         trendline = trendlineChoice,
+                                                         range_y=[yMinInput, yMaxInput],
+                                                         )
+
+
+            st.plotly_chart(figPlotlyScatterchartwithTrendline, use_container_width=True)
+
+
+            # Extracting x, y, and trendline values
+            x_values = figPlotlyScatterchartwithTrendline.data[0].x
+            y_values = figPlotlyScatterchartwithTrendline.data[0].y
+            trendline_values = (figPlotlyScatterchartwithTrendline.data[1].y)
+            #st.write(trendline_values)
+            #st.write(len(trendline_values))
+
+
+
+            # Create dataframe
+            Trend_data = {'x': x_values, 'y': y_values,'trend': trendline_values}
+            df_trendline = pd.DataFrame(Trend_data)
+
+            st.info("Table including the data from the trend line")
+            # Print or further process df_trendline
+            st.dataframe(df_trendline)
+            st.write("Cases: ", len(df_trendline))
+
+            if len(df_trendline) > 0:
+                def to_excel(df_trendline):
+                    output = BytesIO()
+                    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+                    df_trendline.to_excel(writer, index=True, sheet_name='Sheet1')
+                    workbook = writer.book
+                    worksheet = writer.sheets['Sheet1']
+                    format1 = workbook.add_format({'num_format': '0.00'})
+                    worksheet.set_column('A:A', None, format1)
+                    writer.close()
+                    processed_data = output.getvalue()
+                    return processed_data
+
+
+                df_xlsx = to_excel(df_trendline)
+                st.download_button(label='📥 Save table to Excel?',
+                                   data=df_xlsx,
+                                   file_name= target_col + ' - Historic Trend - ' + trendlineChoice +'.xlsx')
+                
+                _="""
+                if st.checkbox("Forecast with linear regression"):
+                    #forecasting von ols mit linear regression
+
+                    # Group by X column and calculate mean of Y column for each group
+                    df_trendline = df_trendline.groupby('x')['trend'].mean().reset_index()
+
+                    forecast_period = st.slider('Number of Periods/month to forcast', min_value=1, max_value=24, value=12, step=1)
+
+                    X = df_trendline['x'].values.reshape(-1, 1)  # Features (date)
+                    y = df_trendline['trend'].values  # Target variable
+
+                    model = LinearRegression()
+                    model.fit(X, y)
+
+                    # Forecast future values
+                    last_date = df[date_col].max()
+                    forecast_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=forecast_period + 1, closed='right')
+                    forecast_dates = forecast_dates[1:]  # Exclude last_date since it's already in the data
+                    forecast_X = np.array(range(len(df) + 1, len(df) + forecast_period + 1)).reshape(-1, 1)  # Future dates
+
+                    forecast_values = model.predict(forecast_X)
+
+                    # Create dataframe for forecasted values
+                    forecast_df = pd.DataFrame({
+                        date_col: forecast_dates,
+                        target_col: forecast_values
+                    })
+
+                    # Display forecasted values
+                    st.write("Forecasted Values:")
+                    st.write(forecast_df)
+                    """
